@@ -34,7 +34,6 @@ class ripeye(idaapi.plugin_t):
 
     def init(self):
         idaapi.msg("Python Editor Is Found Use ALT+E to load to menu \n")
-        # self.AddMenuElements()
         return idaapi.PLUGIN_OK
 
     # def run(self, arg):
