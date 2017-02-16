@@ -1,7 +1,4 @@
-import os
-import sys
-
-from cute import QtCore, QtWidgets, QtGui, use_qt5, connect, disconnect, form_to_widget
+from cute import QtCore, QtWidgets, QtGui, use_qt5, connect, form_to_widget
 
 import idaapi
 

@@ -1,6 +1,8 @@
-# Created by Storm Shadow www.techbliss.org
+# -*- coding: utf-8 -*
 
-# Created by Storm Shadow www.techbliss.org
+"""
+"""
+
 print "\n"  # getting the box fit
 print " ###################################################\n" \
     " #              Author Storm Shadow                # \n" \
@@ -37,7 +39,7 @@ dn = os.path.dirname(inspect.getsourcefile(lambda: 0))
 sys.path.insert(0, dn)
 sys.path.insert(0, os.path.join(dn, "\\icons"))
 
-from PyQt4 import QtCore, QtGui
+from PyQt4 import QtCore, QtGui, Qsci
 from PyQt4.Qsci import QsciScintilla, QsciLexerPython
 from PyQt4.QtGui import *
 from PyQt4.QtCore import QTextStream
@@ -313,11 +315,11 @@ class Ui_MainWindow(object):
     def fontSize(self, fontsize):
         self.text.setFontPointSize(int(fontsize))
 
-    def fontFamily(self, font):
-        self.codebox.text.setCurrentFont(font)
+    # def fontFamily(self, font):
+    #     self.codebox.text.setCurrentFont(font)
 
-    def fontSize(self, fontsize):
-        self.codebox.text.setFontPointSize(int(fontsize))
+    # def fontSize(self, fontsize):
+    #     self.codebox.text.setFontPointSize(int(fontsize))
 
     def savefile(self):
         self.path = QtCore.QFileInfo(self.filename).path()
@@ -432,8 +434,6 @@ class Ui_MainWindow(object):
         else:
             self.codebox.markerAdd(nline, self.ARROW_MARKER_NUM)
 
-
-from PyQt4 import Qsci
 
 if __name__ == "__main__":
     import sys

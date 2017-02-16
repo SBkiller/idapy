@@ -1,38 +1,37 @@
 # -*- coding: utf-8 -*
 
 """
-modified auto_re
+modified version of auto_re
 """
-
-# __author__ = 'Trafimchuk Aliaksandr'
 
 from collections import defaultdict
 import idaapi
-from idautils import FuncItems
 from idaapi import o_reg, o_imm, o_far, o_near, o_mem
 import traceback
 
+import idautils
 
-# HAS_PYSIDE = False
-# try:
-#     from PySide import QtGui, QtCore
-#     from PySide.QtGui import QTreeView, QVBoxLayout, QLineEdit
-#
-#     _slot = QtCore.Slot
-#     global HAS_PYSIDE
-#     HAS_PYSIDE = True
-# except ImportError:
-#     from PyQt5 import QtGui, QtCore
-#     from PyQt5.QtWidgets import QTreeView, QVBoxLayout, QLineEdit
-#
-#     # dummy
-#     def _slot(fn):
-#         def wrap(*args, **kwargs):
-#             return fn(*args, **kwargs)
-#         return wrap
 
-from PyQt5 import QtGui, QtCore
-from PyQt5.QtWidgets import QTreeView, QVBoxLayout
+HAS_PYSIDE = False
+try:
+    from PySide import QtGui, QtCore
+    from PySide.QtGui import QTreeView, QVBoxLayout
+
+    _slot = QtCore.Slot
+    global HAS_PYSIDE
+    HAS_PYSIDE = True
+except ImportError:
+    from PyQt5 import QtGui, QtCore
+    from PyQt5.QtWidgets import QTreeView, QVBoxLayout
+
+    # dummy
+    def _slot(fn):
+        def wrap(*args, **kwargs):
+            return fn(*args, **kwargs)
+        return wrap
+
+# from PyQt5 import QtGui, QtCore
+# from PyQt5.QtWidgets import QTreeView, QVBoxLayout
 
 
 TAGS_IGNORE_LIST = {
@@ -300,14 +299,15 @@ class auto_re_t(idaapi.plugin_t):
             @param: cls :     : class
             @param: fn  : obj : ida.func_t()
 
-            @return: dict :
+            @return: a list of dict : each dict item like this:
+                                      {"ea": addr_of_line, "fn_ea": addr_of_function_start, "insn": obj_of_idaapi.insn_t()}
         """
         rv = list()
-        items = list(FuncItems(fn.startEA))
+        items = list(idautils.FuncItems(fn.startEA))
         for item_ea in items:
-            obj = {'ea': item_ea, 'fn_ea': fn.startEA, 'dis': None}
+            obj = {'ea': item_ea, 'fn_ea': fn.startEA, 'insn': None}
             if idaapi.decode_insn(item_ea) > 0:
-                obj['dis'] = idaapi.cmd.copy()
+                obj['insn'] = idaapi.cmd.copy()
             rv.append(obj)
         return rv
 
@@ -351,24 +351,26 @@ class auto_re_t(idaapi.plugin_t):
         rv = {'fn': fn, 'calls': [], 'math': [], 'has_bads': False, 'tags': defaultdict(list)}
         items = cls.disasm_func(fn)
 
+        # iter each line of this function
         for item in items:
-            dis = item['dis']
-            if dis is None:
+
+            insn = item['insn']
+            if insn is None:
                 rv['has_bads'] = True
                 continue
 
-            if dis.itype in (idaapi.NN_call, idaapi.NN_callfi, idaapi.NN_callni):
-                cls._analysis_handle_call_insn(dis, rv)
+            if insn.itype in (idaapi.NN_call, idaapi.NN_callfi, idaapi.NN_callni):
+                cls._analysis_handle_call_insn(insn, rv)
 
-            elif dis.itype == idaapi.NN_xor:
-                if dis.Op1.type == o_reg and dis.Op2.type == o_reg and dis.Op1.reg == dis.Op2.reg:
+            elif insn.itype == idaapi.NN_xor:
+                if insn.Op1.type == o_reg and insn.Op2.type == o_reg and insn.Op1.reg == insn.Op2.reg:
                     continue
-                rv['math'].append(dis)
+                rv['math'].append(insn)
 
-            elif dis.itype in (idaapi.NN_shr, idaapi.NN_shl, idaapi.NN_sal, idaapi.NN_sar, idaapi.NN_ror,
-                               idaapi.NN_rol, idaapi.NN_rcl, idaapi.NN_rcl):
+            elif insn.itype in (idaapi.NN_shr, idaapi.NN_shl, idaapi.NN_sal, idaapi.NN_sar, idaapi.NN_ror,
+                                idaapi.NN_rol, idaapi.NN_rcl, idaapi.NN_rcl):
                 # TODO
-                rv['math'].append(dis)
+                rv['math'].append(insn)
 
         return rv
 
