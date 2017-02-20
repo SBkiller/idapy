@@ -1,9 +1,14 @@
+# -*- coding: utf-8 -*-
+
+"""
+"""
+
 from itertools import imap
 import idaapi
 import idautils
 import idc
 from .base import get_func, demangle
-from ..core import set_name, get_ea, fix_addresses, is_same_function,add_func
+from ..core import set_name, get_ea, fix_addresses, is_same_function, add_func
 from .line import Line
 from .xref import Xref
 from ..ui import updates_ui
@@ -109,7 +114,6 @@ class Function(object):
             raise exceptions.SarkAddFunctionFailed("Failed to add function")
 
         return Function(ea)
-
 
     @property
     def comments(self):

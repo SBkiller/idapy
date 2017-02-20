@@ -1,4 +1,0 @@
-networkx
-awesomelib
-wrapt
-idacute

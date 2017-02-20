@@ -79,35 +79,10 @@ def save_non_sub_function(file_name):
 
 
 # ---------------------------------------------------------------------------
-class xrkexport(idaapi.plugin_t):
-    flags = idaapi.PLUGIN_FIX
-    comment = "export some things"
+output_file = gen_path_in_idb_dir("1111_ida_names.txt")
+if output_file is not None:
+    save_non_sub_function(output_file)
+    msg("xrkexport, finish")
 
-    help = "export some things"
-    wanted_name = "xrk-export"
-    wanted_hotkey = "ALT-H"
-
-    def init(self):
-        # msg("init")
-        return idaapi.PLUGIN_OK
-
-    def term(self):
-        # msg("term")
-        pass
-
-    def run(self, arg=0):
-        """
-        """
-        # msg("run")
-        output_file = gen_path_in_idb_dir("1111_ida_names.txt")
-        if output_file is not None:
-            save_non_sub_function(output_file)
-            # msg("run finish")
-
-        else:
-            msg("run -- no idb loaded")
-
-
-# ---------------------------------------------------------------------------
-def PLUGIN_ENTRY():
-    return xrkexport()
+else:
+    msg("xrkexport, no idb loaded")

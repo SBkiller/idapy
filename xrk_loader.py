@@ -6,15 +6,48 @@
 1. 各种导出，跟调试器配合使用
 
 2. 动态解析出来的函数，设置其参数类型，之类的
+   包括UIF解析结果、pydbg解析结果等
 
-3.
+3. 先手动处理"unexplored"
+   idaapi.next_unknown()
+   idaapi.prev_unknown()
+   idaapi.find_unknown()
+   把代码标记为"explored"
+
+4. 在非函数代码中，跳转到前面的/后面的函数定义/数据定义/0xCC之类的
+
+5. 在函数代码中，跳转到函数头/尾
+
+6. 字符串窗口：
+   对字符串筛选、标色
+   使用floss的功能，补充字符串(因为过程中资源消耗的问题: 要有弹窗提示; 用单独的进程来搞，把结果写入文件，再从文件中读取)
+
+7. 单独的BinDiff程序，偶尔无法比较; IDA内置的BinDiff，最后在导出结果时一直失败
+
+
+
+
+
+# 补充样本: 这个可以搞
+
+"""
+"""
+1. IDA: Ctrl+Q: Problem列表:
+   NODISASM : CC、数据
+   ALREADY  : 数据被解析为代码
+   BADSTACK : 堆栈不平。那些没有负数堆栈的，都可以F5
+   DECISION : 不会执行的代码
+   ROLLBACK : 代码段的数据、字符串等
+   SIGFNREF : Sig匹配不确定。一般都是短函数
 """
 
-import idaapi
 
 import os
 import sys
+import idaapi
 import inspect
+import xrk_log
+
 file_path = os.path.abspath(inspect.getsourcefile(lambda: 0))
 file_dir = os.path.dirname(inspect.getsourcefile(lambda: 0))
 
@@ -38,20 +71,21 @@ from ico import *
 #
 
 # ---------------------------------------------------------------------------
+# log, proxy to xrklog.py
+
 v_log_header = "[XRK-LOADER] >> "
 
 
 def msg(str_):
-    idaapi.msg("%s%s\n" % (v_log_header, str_))
+    xrk_log.msg(v_log_header, str_)
 
 
 def msgs(strs):
-    for str_ in strs:
-        msg(str_)
+    xrk_log.msgs(v_log_header, strs)
 
 
 def warn(str_):
-    idaapi.msg("%s%s\n" % (v_log_header, str_))
+    xrk_log.warn(v_log_header, str_)
 
 
 # ---------------------------------------------------------------------------
@@ -83,7 +117,11 @@ class handler_pt_list(idaapi.action_handler_t):
         lines = []
         lines.append("Ctrl + Alt + 0  >> print registered script file list")
         lines.append("Ctrl + Alt + 1  >> test")
-        lines.append("Ctrl + Alt + 2  >> pop script editor window")
+        lines.append("Ctrl + Alt + 2  >> exec py_editory.py to pop script editor window")
+        # lines.append("Ctrl + Alt + 3  >> walk to next unexplored")
+        lines.append("Ctrl + Alt + 4  >> auto rename")
+        lines.append("Ctrl + Alt + 5  >> export something")
+        lines.append("Ctrl + Alt + 6  >> exec xrk_test.py to test something")
         msgs(lines)
 
     def update(self, ctx):
@@ -91,6 +129,9 @@ class handler_pt_list(idaapi.action_handler_t):
 
 
 class handler_py_editor(idaapi.action_handler_t):
+    """
+        exec pyeditor.py to pop up python editor window
+    """
     def __init__(self):
         idaapi.action_handler_t.__init__(self)
 
@@ -111,6 +152,7 @@ class handler_exec_py_script(idaapi.action_handler_t):
             store python file path
         """
         idaapi.action_handler_t.__init__(self)
+        self.py_script_name = py_script_name
         self.py_script_path = os.path.join(file_dir, py_script_name)
 
         if not os.path.exists(self.py_script_path):
@@ -123,6 +165,7 @@ class handler_exec_py_script(idaapi.action_handler_t):
         if not os.path.exists(self.py_script_path):
             warn("python script file not exists: %s" % self.py_script_path)
         else:
+            msg("exec py script: %s" % self.py_script_name)
             g = globals()
             idaapi.IDAPython_ExecScript(self.py_script_path, g)
 
@@ -134,6 +177,14 @@ class handler_exec_py_script(idaapi.action_handler_t):
 
 
 # ---------------------------------------------------------------------------
+def callback(evt, *args):
+    """
+    """
+    msg("cbk - evt - %d" % evt)
+    return 0
+
+
+# ---------------------------------------------------------------------------
 class xrkloader(idaapi.plugin_t):
 
     flags = idaapi.PLUGIN_FIX
@@ -142,21 +193,54 @@ class xrkloader(idaapi.plugin_t):
     help = "register many shortcuts to execute standalone python scripts"
     wanted_name = "xrkloader"
     wanted_hotkey = "ALT-N"
+    is_action_registered = False
+    is_decompile_cbk_installed = False
 
     def init(self):
+        """
+        """
         # msg("init()")
         return idaapi.PLUGIN_OK
 
     def run(self, arg):
+        """
+            1. register actions(shortcuts)
+            2. install decompile callback
+        """
         # msg("run()")
-        idaapi.register_action(idaapi.action_desc_t("print script list", "print script list", handler_pt_list(), "Ctrl-Alt-0", "print script list(with shortcuts)"))
-        idaapi.register_action(idaapi.action_desc_t("name-test", "label-test", handler_test(), "Ctrl-Alt-1", "just test for xrk loader"))
-        idaapi.register_action(idaapi.action_desc_t("py_editor", "py_editor", handler_exec_py_script("xrk_pyeditor\\pyeditor.py"), "Ctrl-Alt-2", "python script editor"))
-        idaapi.register_action(idaapi.action_desc_t("unexp_walk", "unexp_walk", handler_exec_py_script("xrk_unexp_walk.py"), "Ctrl-Alt-3", "walk to next unexplorered code"))
-        idaapi.register_action(idaapi.action_desc_t("auto_rename", "auto_rename", handler_exec_py_script("xrk_auto_re.py"), "Ctrl-Alt-4", "auto rename some functions"))
+
+        # shortcut
+        if not self.is_action_registered:
+            idaapi.register_action(idaapi.action_desc_t("print script list", "print script list", handler_pt_list(), "Ctrl-Alt-0", "print script list(with shortcuts)"))
+            idaapi.register_action(idaapi.action_desc_t("test", "test", handler_test(), "Ctrl-Alt-1", "just test for xrk loader"))
+            idaapi.register_action(idaapi.action_desc_t("py_editor", "py_editor", handler_exec_py_script("xrk_pyeditor\\pyeditor.py"), "Ctrl-Alt-2", "python script editor"))
+            # idaapi.register_action(idaapi.action_desc_t("unexp_walk", "unexp_walk", handler_exec_py_script("xrk_unexp_walk.py"), "Ctrl-Alt-3", "walk to next unexplorered code"))
+            idaapi.register_action(idaapi.action_desc_t("auto_rename", "auto_rename", handler_exec_py_script("xrk_rename.py"), "Ctrl-Alt-4", "auto rename some functions"))
+            idaapi.register_action(idaapi.action_desc_t("export", "export", handler_exec_py_script("xrk_export.py"), "Ctrl-Alt-5", "export something(code)"))
+            idaapi.register_action(idaapi.action_desc_t("test_script", "test_script", handler_exec_py_script("xrk_test.py"), "Ctrl-Alt-6", "exec test script"))
+            self.is_action_registered = True
+            msg("register actions success")
+        else:
+            msg("actions already registered")
+
+        # decompile callback
+        if not self.is_decompile_cbk_installed:
+            if idaapi.init_hexrays_plugin():
+                self.is_decompile_cbk_installed = idaapi.install_hexrays_callback(callback)
+                if not self.is_decompile_cbk_installed:
+                    warn("install decompile callback fail")
+                else:
+                    msg("install decompile callback success")
+            else:
+                warn("init hexrays fail, not installing decompile callback")
+        else:
+            msg("decompile callback already installed")
+
         # msg("run() -- finish")
 
     def term(self):
+        """
+        """
         # msg("term()")
         pass
 
@@ -164,3 +248,137 @@ class xrkloader(idaapi.plugin_t):
 # ---------------------------------------------------------------------------
 def PLUGIN_ENTRY():
     return xrkloader()
+
+
+#
+# from x_ida.py
+#
+
+
+# ---------------------------------------------------------------------------
+# util
+# ---------------------------------------------------------------------------
+
+
+def test():
+    print "this is test from x_ida"
+
+
+def time_str():
+    return time.strftime('%Y%m%d_%H_%M_%S', time.localtime(time.time()))
+
+
+# ---------------------------------------------------------------------------
+# path
+# ---------------------------------------------------------------------------
+
+
+def _patch_bytes(addr, value, size):
+    """
+        patch a range of bytes to specificed value
+    """
+    for i in range(size):
+        idaapi.patch_byte(addr + i, value)
+
+
+def _clear_bytes(addr, size):
+    """
+        patch a range of bytes to 0
+    """
+    _patch_bytes(addr, 0, size)
+
+
+def _nope_bytes(addr, size):
+    """
+        patch a range of bytes to 0x90
+    """
+    _patch_bytes(addr, 0x90, size)
+
+
+def _get_len_till_0(addr):
+    """
+        iter addrs, till 0 is get
+    """
+    len_ = 0
+    while idaapi.get_byte(addr + len_) != 0:
+        len_ = len_ + 1
+    return len_
+
+
+def _patch_str(addr, str_):
+    """
+        patch str bytes, one by one
+    """
+    print "patch str, addr: 0x%X, str: %s" % (addr, str_)
+    for i in range(len(str_)):
+        idaapi.patch_byte(addr + i, ord(str_[i]))
+
+
+def _replace_str(addr, str_, is_force=False):
+    """
+        replace str, check size first. if is_forst is specified, will patch whatever
+    """
+    len_ = _get_len_till_0(addr)
+    if len_ < len(str_):
+        if not is_force:
+            print "!!!! replace str, this one is invalid. addr: 0x%X, str: %s" % (addr, str_)
+            print "!!!! will not patch"
+            return
+        print "!!!! replace str, this one is invalid. addr: 0x%X, str: %s" % (addr, str_)
+        print "!!!! will patch anyway, since is_force is specified as True"
+    _clear_bytes(addr, len_)
+    _patch_str(addr, str_)
+    idaapi.make_ascii_string(addr, len(str_), idc.ASCSTR_C)
+
+
+def _replace_str_rva(addr, base, str_, is_force=False):
+    """
+        replace str, by addr and base
+    """
+    _replace_str(addr - base, str_, is_force)
+
+
+# ---------------------------------------------------------------------------
+# function
+# ---------------------------------------------------------------------------
+
+
+def get_non_sub_functions():
+    """
+        get all functions that do not start with "sub_" and "unknown" and "nullsub"
+
+        @return: LIST: a list of TUPLE. tuple: (start_addr, end_addr, name)
+    """
+    ret = []
+    for f in idautils.Functions():
+        name = idc.GetFunctionName(f)
+        if not name.startswith("sub_") and not name.startswith("unknown") and not name.startswith("nullsub"):
+            ret.append((idc.GetFunctionAttr(f, 0), idc.GetFunctionAttr(f, 4), name))
+    return ret
+
+
+def save_non_sub_function(file_name):
+    """
+        save format: addr(DEC) name
+
+        @param: file_name: format: xxxx_ida_names.txt
+    """
+    f = open(file_name, "w")
+    for func in get_non_sub_functions():
+        f.write("%d %d %s\n" % (func[0], func[1], func[2]))
+    print "save non sub functio to file finish: %s" % file_name
+
+
+"""
+ida script:
+
+import x_ida
+reload(x_ida)
+for x in x_ida.get_non_sub_functions():
+    # DEC, not HEX
+    print "%d %d %s" % (x[0], x[1], x[2])
+"""
+
+# ---------------------------------------------------------------------------
+# END OF FILE
+# ---------------------------------------------------------------------------

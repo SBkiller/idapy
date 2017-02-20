@@ -189,6 +189,9 @@ class OperandType(object):
 
 class Operand(object):
     def __init__(self, operand, ea, insn, write=False, read=False):
+        """
+            @param: operand : obj : idaapi.op_t()
+        """
         self._operand = operand
         self._write = write
         self._read = read
