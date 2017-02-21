@@ -1,28 +1,3 @@
-/*	Copyright (c) 2013-2016
-REhints <info@rehints.com>
-All rights reserved.
-
-==============================================================================
-
-This file is part of HexRaysCodeXplorer
-
-HexRaysCodeXplorer is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see
-<http://www.gnu.org/licenses/>.
-
-==============================================================================
-*/
-
 #include "Common.h"
 #include "CtreeGraphBuilder.h"
 #include "ObjectExplorer.h"
@@ -65,11 +40,11 @@ static int hotcode_ec;
 static const char hotkey_vc[] = "V";
 static int hotcode_vc;
 
-static const char hotkey_so[] = "Q"; // After positioning cursor at source code user can press Q to copy to clipboard string of form modulename + 0xoffset. 
+static const char hotkey_so[] = "Q"; // After positioning cursor at source code user can press Q to copy to clipboard string of form modulename + 0xoffset.
 									 // It can be useful while working with WinDbg.
 static int hotcode_dq;
 
-static const char hotkey_rv[] = "E"; // Automatic renaming of duplicating variables by pressing E. 
+static const char hotkey_rv[] = "E"; // Automatic renaming of duplicating variables by pressing E.
 									 // All duplicating successors obtain _2, _3 ... postfixes.
 static int hotcode_de;
 
@@ -348,7 +323,7 @@ static bool idaapi decompile_func(vdui_t &vu)
 			while ((proc_name > citem_name) && (*(proc_name - 1) != '>'))
 				proc_name--;
 
-			if (proc_name != citem_name) 
+			if (proc_name != citem_name)
 			{
 				func_t * func = get_func_by_name(proc_name);
 				if (func != NULL)
@@ -369,7 +344,7 @@ lvars_t* lvars;
 lvar_t lv;
 map<lvar_t*, qstring> to_rename;
 
-static bool idaapi rename_simple_expr(void *ud) 
+static bool idaapi rename_simple_expr(void *ud)
 {
 	vdui_t &vu = *(vdui_t *)ud;
 	cfuncptr_t pfunc = vu.cfunc;
@@ -389,12 +364,12 @@ static bool idaapi rename_simple_expr(void *ud)
 		qstring rvar_depends_on(cexpr_t* e) {
 			qstring rvar_name = (*lvars)[e->y->v.idx].name;
 			map<qstring, vector<qstring>>::iterator it;
-			for (it = roots.begin(); it != roots.end(); it++) 
+			for (it = roots.begin(); it != roots.end(); it++)
 			{
 				if (it->first == rvar_name)
 					return ROOT;
 				vector<qstring>::iterator yt;
-				for (yt = it->second.begin(); yt != it->second.end(); yt++) 
+				for (yt = it->second.begin(); yt != it->second.end(); yt++)
 				{
 					if (*yt == rvar_name)
 						return it->first;
@@ -413,25 +388,25 @@ static bool idaapi rename_simple_expr(void *ud)
 				lvar_name = (*lvars)[e->x->v.idx].name;
 				rvar_name = (*lvars)[e->y->v.idx].name;
 				tvar_name = rvar_depends_on(e);
-				if (tvar_name == ROOT) 
+				if (tvar_name == ROOT)
 				{
 					//rvar is root variable
 					if (rvar_name != lvar_name)
 						roots[rvar_name].push_back(lvar_name);
 				}
-				else 
+				else
 				{
 					//rvar is dependant
-					if (tvar_name != lvar_name) 
+					if (tvar_name != lvar_name)
 					{
 						rvar_name = tvar_name;
 						roots[tvar_name].push_back(lvar_name);
 					}
 				}
 
-				for (int i = 0; i < roots[lvar_name].size(); i++) 
+				for (int i = 0; i < roots[lvar_name].size(); i++)
 				{
-					if (roots[lvar_name][i] == rvar_name) 
+					if (roots[lvar_name][i] == rvar_name)
 						return 0;
 				}
 
@@ -461,7 +436,7 @@ static bool idaapi show_offset_in_windbg_format(void *ud) {
 	vu.get_current_item(USE_KEYBOARD);
 	offset = vu.item.i->ea - get_imagebase();
 
-	if (offset < 0) 
+	if (offset < 0)
 	{
 		info("Locate pointer after = sign or at operand of function\n");
 		return false;
@@ -480,13 +455,13 @@ static bool idaapi show_offset_in_windbg_format(void *ud) {
 #if defined (__LINUX__) || defined (__MAC__)
 	msg(result.c_str());
 #else
-	OpenClipboard(0); 
+	OpenClipboard(0);
 	EmptyClipboard();
 	HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, result.size());
 
-	if (!hg) 
+	if (!hg)
 	{
-		CloseClipboard(); 
+		CloseClipboard();
 		msg("Can't alloc\n");
 		return -2;
 	}

@@ -193,7 +193,8 @@ class xrkloader(idaapi.plugin_t):
     help = "register many shortcuts to execute standalone python scripts"
     wanted_name = "xrkloader"
     wanted_hotkey = "ALT-N"
-    is_action_registered = False
+    is_act_no_shortcut_registered = False
+    is_act_with_shortcut_registered = False
     is_decompile_cbk_installed = False
 
     def init(self):
@@ -209,8 +210,16 @@ class xrkloader(idaapi.plugin_t):
         """
         # msg("run()")
 
-        # shortcut
-        if not self.is_action_registered:
+        # actions - no shortcut
+        if not self.is_act_no_shortcut_registered:
+            # idaapi.register_action()
+            self.is_act_no_shortcut_registered = True
+            msg("register actions no shortcuts success")
+        else:
+            msg("actions no shortcut already registered")
+
+        # actions - shortcut
+        if not self.is_act_with_shortcut_registered:
             idaapi.register_action(idaapi.action_desc_t("print script list", "print script list", handler_pt_list(), "Ctrl-Alt-0", "print script list(with shortcuts)"))
             idaapi.register_action(idaapi.action_desc_t("test", "test", handler_test(), "Ctrl-Alt-1", "just test for xrk loader"))
             idaapi.register_action(idaapi.action_desc_t("py_editor", "py_editor", handler_exec_py_script("xrk_pyeditor\\pyeditor.py"), "Ctrl-Alt-2", "python script editor"))
@@ -218,14 +227,15 @@ class xrkloader(idaapi.plugin_t):
             idaapi.register_action(idaapi.action_desc_t("auto_rename", "auto_rename", handler_exec_py_script("xrk_rename.py"), "Ctrl-Alt-4", "auto rename some functions"))
             idaapi.register_action(idaapi.action_desc_t("export", "export", handler_exec_py_script("xrk_export.py"), "Ctrl-Alt-5", "export something(code)"))
             idaapi.register_action(idaapi.action_desc_t("test_script", "test_script", handler_exec_py_script("xrk_test.py"), "Ctrl-Alt-6", "exec test script"))
-            self.is_action_registered = True
-            msg("register actions success")
+            self.is_act_with_shortcut_registered = True
+            msg("register actions with shortcuts success")
         else:
-            msg("actions already registered")
+            msg("actions with shortcut already registered")
 
         # decompile callback
         if not self.is_decompile_cbk_installed:
             if idaapi.init_hexrays_plugin():
+                msg("decompiler version: %s" % idaapi.get_hexrays_version())
                 self.is_decompile_cbk_installed = idaapi.install_hexrays_callback(callback)
                 if not self.is_decompile_cbk_installed:
                     warn("install decompile callback fail")
@@ -235,6 +245,8 @@ class xrkloader(idaapi.plugin_t):
                 warn("init hexrays fail, not installing decompile callback")
         else:
             msg("decompile callback already installed")
+
+        # todo: if all success, then this plugin don't require to "run", so we un-register hotkey
 
         # msg("run() -- finish")
 
