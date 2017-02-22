@@ -1,113 +1,60 @@
 # -*- coding: utf-8 -*
 
 """
+test module
 """
 
-import idaapi
+import os
+import inspect
+
+# import idaapi
 import xrk_log
 
+file_path = os.path.abspath(inspect.getsourcefile(lambda: 0))
+file_dir = os.path.dirname(inspect.getsourcefile(lambda: 0))
 
 # ---------------------------------------------------------------------------
-# log, proxy to xrklog.py
-
-v_log_header = "[XRK-TEST] >> "
+v_log_header = "[XRK-TEST] >>"
 
 
 def msg(str_):
     xrk_log.msg(v_log_header, str_)
 
 
-def msgs(strs):
-    xrk_log.msgs(v_log_header, strs)
-
-
-def warn(str_):
-    xrk_log.warn(v_log_header, str)
-
-
 # ---------------------------------------------------------------------------
-class hexrays_callback_info(object):
-
-    def __init__(self):
-        return
-
-    def event_callback(self, event, *args):
-        import traceback
-        traceback.print_exc()
-
-        try:
-            print "evt: %s" % str(event)
-
-        except:
-            pass
-
-        return 0
-
-
-def callback(event, *args):
-    import traceback
-    traceback.print_exc()
+if __name__ == "__main__":
+    msg("from hello")
 
     try:
-        msg("evt: %s" % str(event))
-
+        file_path = r"E:\SVN\repo-pydbg\1111_api_summary.dat"
+        file = open(file_path, "r")
     except:
-        msg("exception")
-
-    return 0
-
-
-# ---------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    if idaapi.init_hexrays_plugin():
-        # x = hexrays_callback_info()
-        # if idaapi.install_hexrays_callback(x.event_callback):
-        if idaapi.install_hexrays_callback(callback):
-            print "install callback success"
-        else:
-            print "install callback fail"
+        print "export api summary to file cause exception: %s" % file_path
     else:
-        print "hexrays not inited...."
+        import pickle
+        api_summaries_with_stacks, api_summaries_no_stacks = pickle.load(file)
+        file.close()
 
+        msg("%d - %d" % (len(api_summaries_with_stacks), len(api_summaries_no_stacks)))
 
-# ---------------------------------------------------------------------------
-class xrktest(idaapi.plugin_t):
+        # print way borrowed from output.py
 
-    flags = idaapi.PLUGIN_FIX
-    comment = "This is test script"
-
-    help = "This is test script"
-    wanted_name = "xrktest"
-    wanted_hotkey = ""
-
-    def init(self):
-        # msg("init()")
-        self.is_cbk_registered = False
-        if idaapi.init_hexrays_plugin():
-            msg("true........")
+        if len(api_summaries_with_stacks) == 0:
+            print "!" * 5 + " no api call with stacks " + "!" * 5
         else:
-            msg("false..........")
-        return idaapi.PLUGIN_OK
+            print "!" * 5 + " api call with stacks count: %d " % len(api_summaries_with_stacks) + "!" * 5
+            for record in api_summaries_with_stacks:
+                lines = record.lines()
+                for line in lines:
+                    print "    %s" % line
+            print ""
 
-    def run(self, arg):
-        msg("run()")
-        if idaapi.init_hexrays_plugin():
-            msg("true........")
+        if len(api_summaries_no_stacks) == 0:
+            print "!" * 5 + " no api call with none stacks " + "!" * 5
         else:
-            msg("false..........")
-        # self.is_cbk_registered = idaapi.install_hexrays_callback()
-        msg("run() -- finish")
-
-    def term(self):
-        msg("term()")
-
-
-# ---------------------------------------------------------------------------
-def PLUGIN_ENTRY():
-    return xrktest()
-
-"""
-if __name__ == "__main__":
-    msg(idaapi.init_hexrays_plugin())
-"""
+            print "!" * 5 + " api call with none stacks count: %d " % len(api_summaries_no_stacks) + "!" * 5
+            for record in api_summaries_no_stacks:
+                lines = record.lines()
+                for line in lines:
+                    print "    %s" % line
+            print ""
