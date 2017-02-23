@@ -7,7 +7,7 @@ test module
 import os
 import inspect
 
-# import idaapi
+import idaapi
 import xrk_log
 
 file_path = os.path.abspath(inspect.getsourcefile(lambda: 0))
@@ -25,36 +25,38 @@ def msg(str_):
 if __name__ == "__main__":
     msg("from hello")
 
-    try:
-        file_path = r"E:\SVN\repo-pydbg\1111_api_summary.dat"
-        file = open(file_path, "r")
-    except:
-        print "export api summary to file cause exception: %s" % file_path
-    else:
-        import pickle
-        api_summaries_with_stacks, api_summaries_no_stacks = pickle.load(file)
-        file.close()
-
-        msg("%d - %d" % (len(api_summaries_with_stacks), len(api_summaries_no_stacks)))
-
-        # print way borrowed from output.py
-
-        if len(api_summaries_with_stacks) == 0:
-            print "!" * 5 + " no api call with stacks " + "!" * 5
+    file_path = idaapi.askfile_c(0, "_api_summary.dat", "plese select api summary file")
+    if os.path.exists(file_path):
+        try:
+            # file_path = r"E:\SVN\repo-pydbg\1111_api_summary.dat"
+            file = open(file_path, "r")
+        except:
+            print "export api summary to file cause exception: %s" % file_path
         else:
-            print "!" * 5 + " api call with stacks count: %d " % len(api_summaries_with_stacks) + "!" * 5
-            for record in api_summaries_with_stacks:
-                lines = record.lines()
-                for line in lines:
-                    print "    %s" % line
-            print ""
+            import pickle
+            api_summaries_with_stacks, api_summaries_no_stacks = pickle.load(file)
+            file.close()
 
-        if len(api_summaries_no_stacks) == 0:
-            print "!" * 5 + " no api call with none stacks " + "!" * 5
-        else:
-            print "!" * 5 + " api call with none stacks count: %d " % len(api_summaries_no_stacks) + "!" * 5
-            for record in api_summaries_no_stacks:
-                lines = record.lines()
-                for line in lines:
-                    print "    %s" % line
-            print ""
+            msg("%d - %d" % (len(api_summaries_with_stacks), len(api_summaries_no_stacks)))
+
+            # print way borrowed from output.py
+
+            if len(api_summaries_with_stacks) == 0:
+                print "!" * 5 + " no api call with stacks " + "!" * 5
+            else:
+                print "!" * 5 + " api call with stacks count: %d " % len(api_summaries_with_stacks) + "!" * 5
+                for record in api_summaries_with_stacks:
+                    lines = record.lines()
+                    for line in lines:
+                        print "    %s" % line
+                print ""
+
+            if len(api_summaries_no_stacks) == 0:
+                print "!" * 5 + " no api call with none stacks " + "!" * 5
+            else:
+                print "!" * 5 + " api call with none stacks count: %d " % len(api_summaries_no_stacks) + "!" * 5
+                for record in api_summaries_no_stacks:
+                    lines = record.lines()
+                    for line in lines:
+                        print "    %s" % line
+                print ""

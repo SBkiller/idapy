@@ -180,7 +180,7 @@ class handler_exec_py_script(idaapi.action_handler_t):
 def callback(evt, *args):
     """
     """
-    msg("cbk - evt - %d" % evt)
+    # msg("cbk - evt - %d" % evt)
     return 0
 
 

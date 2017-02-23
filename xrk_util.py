@@ -36,6 +36,7 @@ def gen_path_in_idb_dir(tail, add_time_prefix=True):
     idb_file_path = get_idb_file_path()
     if idb_file_path is None or len(idb_file_path) == 0:
         return None
+
     if add_time_prefix:
         return os.path.join(idb_file_path, time_str() + "_" + tail)
     return os.path.join(idb_file_path, tail)

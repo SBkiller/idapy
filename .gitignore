@@ -1,3 +1,4 @@
 .svn
 *.pyd
 *.c
+*.pyc
