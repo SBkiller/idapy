@@ -13,6 +13,8 @@ class api_summary_with_stacks:
             @param: api_name       : string : api name that truely hit breakpoint
             @param: from_func_name : string :
         """
+        assert to_addr != 0
+
         self.to_addr = to_addr
         self.api_name = api_name
         self.from_func_name = from_func_name
@@ -130,3 +132,26 @@ def has_stacks(stacks_list, stacks):
             return True
 
     return False
+
+
+def is_stacks_has_None_md(stacks):
+    """
+        check if from_md_name or to_md_name of any stack in stacks is "None", meaning these stacsk went through "heap" or "stack"
+
+        @param: stacks : list : a list of call_stack() object
+
+        @return: bool :
+               : None :
+
+        !+ do not check to_md_name of last stack, which shall always be ""
+        !+ it's "pickle loader"'s responsibility to check if stacks has None md.
+    """
+    for i in range(len(stacks) - 1):
+
+        stack = stacks[i]
+        if stack.to_md_name is None or stack.to_md_name == "":
+            return True
+        if stack.from_md_name is None or stack.from_md_name == "":
+            return True
+
+    return stacks[-1].from_md_name is None or stacks[-1].from_md_name == ""
