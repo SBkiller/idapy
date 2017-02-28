@@ -11,6 +11,7 @@ import idaapi
 import idautils
 
 import xrk_log
+import xrk_util
 
 
 # ---------------------------------------------------------------------------
@@ -87,31 +88,47 @@ def _save_func(file_name, is_offset=False, is_hex=False, cbk_filter=None):
 
 
 # ---------------------------------------------------------------------------
-if __name__ == "__main__":
 
-    # export non sub function and function range for Immuntiy Debugger
-    # import xrk_util
-    # output_file = xrk_util.gen_path_in_idb_dir("1111_ida_names.txt")
-    # if output_file is not None:
-    #     _save_func(output_file, is_offset=True, is_hex=True, cbk_filter=cbk_filter_not_sub_nor_unknown)
-    #     msg("xrkexport for immunity debugger, finish: %s" % output_file)
-    # else:
-    #     msg("xrkexport immunity debugger, no idb loaded")
+def export_symbol_file_for_imm():
+    """
+    """
+    output_file = idc.GetIdbPath().strip(".idb") + ".dll.txt"
+    if os.path.exists(output_file):
+        msg("can't export, file already exists: %s" % output_file)
+    elif output_file is not None:
+        _save_func(output_file, is_offset=True, is_hex=True, cbk_filter=cbk_filter_not_sub_nor_unknown)
+        msg("xrkexport for xrkpydbg, finish: %s" % output_file)
+    else:
+        msg("xrkexport for xrkpydbg, no idb loaded")
 
-    # export non sub function and function range for xrkpydbg
-    # output_file = idc.GetIdbPath().strip(".idb") + ".dll.txt"
-    # if os.path.exists(output_file):
-    #     msg("can't export, file already exists: %s" % output_file)
-    # elif output_file is not None:
-    #     _save_func(output_file, is_offset=True, is_hex=True, cbk_filter=cbk_filter_not_sub_nor_unknown)
-    #     msg("xrkexport for xrkpydbg, finish: %s" % output_file)
-    # else:
-    #     msg("xrkexport for xrkpydbg, no idb loaded")
 
-    # export function address for xrkpydbg
-    import xrk_util
+def export_symbol_file_for_pydbg():
+    """
+        export non sub function and function range for Immuntiy Debugger
+    """
+    output_file = xrk_util.gen_path_in_idb_dir("1111_ida_names.txt")
+    if output_file is not None:
+        _save_func(output_file, is_offset=True, is_hex=True, cbk_filter=cbk_filter_not_sub_nor_unknown)
+        msg("xrkexport for pydbg, finish: %s" % output_file)
+
+    else:
+        msg("xrkexport pydbg, no idb loaded")
+
+
+def export_func_file_for_pydbg():
+    """
+        export function address for xrkpydbg
+    """
     output_file = xrk_util.gen_path_in_idb_dir("1111_ida_funcs.txt")
     if output_file is not None:
         _save_func(output_file, is_offset=False, is_hex=True, cbk_filter=None)
     else:
         msg("export function address, no idb loaded")
+
+
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+
+    # export_symbol_file_for_imm()
+    export_symbol_file_for_pydbg()
+    export_func_file_for_pydbg()
